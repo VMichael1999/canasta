@@ -11,7 +11,12 @@ import '../blocs/orders/orders_cubit.dart';
 import '../blocs/search/search_cubit.dart';
 import '../blocs/session/session_bloc.dart';
 import '../core/theme.dart';
+import '../shared/cart_bubble_scope.dart';
+import '../shared/floating_cart_bubble.dart';
 import 'router.dart';
+
+final GlobalKey<FloatingCartBubbleState> _bubbleKey =
+    GlobalKey<FloatingCartBubbleState>();
 
 class CanastaApp extends StatelessWidget {
   const CanastaApp({super.key});
@@ -53,6 +58,16 @@ class CanastaApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: CaTheme.light,
         routerConfig: canastaRouter,
+        builder: (context, child) => CartBubbleScope(
+          bubbleKey: _bubbleKey,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              child ?? const SizedBox.shrink(),
+              FloatingCartBubble(key: _bubbleKey, router: canastaRouter),
+            ],
+          ),
+        ),
         locale: const Locale('es', 'PE'),
         supportedLocales: const [
           Locale('es', 'PE'),

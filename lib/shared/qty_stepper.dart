@@ -52,9 +52,9 @@ class QtyStepper extends StatelessWidget {
 
     switch (style) {
       case StepperStyle.cardPill:
+        // .stp dentro de .pc: botones de 25 px, cantidad mínima de 14 px.
         return Container(
           height: 30,
-          padding: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
             color: tokens.blue,
             borderRadius: BorderRadius.circular(15),
@@ -65,17 +65,23 @@ class QtyStepper extends StatelessWidget {
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: _decrement,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  child: AppSvgIcon('minus', size: 13, color: Colors.white),
+                child: const SizedBox(
+                  width: 25,
+                  height: 30,
+                  child: Center(
+                    child: AppSvgIcon('minus', size: 15, color: Colors.white),
+                  ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
+              ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 14),
                 child: Text(
                   _label,
+                  maxLines: 1,
+                  softWrap: false,
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontSize: 12.5,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                   ),
@@ -84,9 +90,12 @@ class QtyStepper extends StatelessWidget {
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: _increment,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  child: AppSvgIcon('plus', size: 13, color: Colors.white),
+                child: const SizedBox(
+                  width: 25,
+                  height: 30,
+                  child: Center(
+                    child: AppSvgIcon('plus', size: 15, color: Colors.white),
+                  ),
                 ),
               ),
             ],
@@ -107,17 +116,21 @@ class QtyStepper extends StatelessWidget {
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: _decrement,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  child: AppSvgIcon('minus', size: 14, color: tokens.ink),
+                child: SizedBox(
+                  width: 30,
+                  height: 32,
+                  child: Center(
+                    child: AppSvgIcon('minus', size: 15, color: tokens.ink),
+                  ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
+              ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 22),
                 child: Text(
                   _label,
+                  textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 13.5,
                     fontWeight: FontWeight.w700,
                     color: tokens.ink,
                   ),
@@ -126,9 +139,12 @@ class QtyStepper extends StatelessWidget {
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: _increment,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  child: AppSvgIcon('plus', size: 14, color: tokens.ink),
+                child: SizedBox(
+                  width: 30,
+                  height: 32,
+                  child: Center(
+                    child: AppSvgIcon('plus', size: 15, color: tokens.ink),
+                  ),
                 ),
               ),
             ],
@@ -141,7 +157,7 @@ class QtyStepper extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: tokens.border, width: 1.5),
+            border: Border.all(color: tokens.border, width: 1),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -149,15 +165,19 @@ class QtyStepper extends StatelessWidget {
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: _decrement,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  child: AppSvgIcon('minus', size: 18, color: tokens.ink),
+                child: SizedBox(
+                  width: 44,
+                  height: 46,
+                  child: Center(
+                    child: AppSvgIcon('minus', size: 18, color: tokens.ink),
+                  ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
+              ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 26),
                 child: Text(
                   _label,
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -168,9 +188,12 @@ class QtyStepper extends StatelessWidget {
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: _increment,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  child: AppSvgIcon('plus', size: 18, color: tokens.ink),
+                child: SizedBox(
+                  width: 44,
+                  height: 46,
+                  child: Center(
+                    child: AppSvgIcon('plus', size: 18, color: tokens.ink),
+                  ),
                 ),
               ),
             ],

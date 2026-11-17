@@ -1,59 +1,51 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../core/assets.dart';
-import '../core/haptics.dart';
 
+/// El producto vuela por una curva de Bézier cuadrática hasta la burbuja
+/// (680 ms, `cubic-bezier(.45,.05,.4,1)`): escala del tamaño de la imagen a
+/// 44 px y gira 22°.
 class FlyAnimator {
-  static void flyToBubble({
-    required BuildContext context,
-    required GlobalKey sourceKey,
+  static void fly({
+    required OverlayState overlay,
+    required Rect from,
+    required Offset to,
+    required double toSize,
     required String productId,
-    required Offset targetOffset,
-    VoidCallback? onComplete,
+    required VoidCallback onComplete,
   }) {
-    final renderBox = sourceKey.currentContext?.findRenderObject() as RenderBox?;
-    if (renderBox == null) {
-      onComplete?.call();
-      return;
-    }
-
-    final startOffset = renderBox.localToGlobal(Offset.zero);
-    final startSize = renderBox.size;
-    final overlay = Overlay.of(context);
-
     late OverlayEntry entry;
     entry = OverlayEntry(
-      builder: (context) => _FlyWidget(
-        startOffset: startOffset,
-        startSize: startSize,
-        targetOffset: targetOffset,
-        productId: productId,
-        onAnimationEnd: () {
-          entry.remove();
-          CaHaptics.lightImpact();
-          onComplete?.call();
-        },
-      ),
+      builder:
+          (context) => _FlyWidget(
+            from: from,
+            to: to,
+            toSize: toSize,
+            productId: productId,
+            onEnd: () {
+              entry.remove();
+              onComplete();
+            },
+          ),
     );
-
     overlay.insert(entry);
   }
 }
 
 class _FlyWidget extends StatefulWidget {
   const _FlyWidget({
-    required this.startOffset,
-    required this.startSize,
-    required this.targetOffset,
+    required this.from,
+    required this.to,
+    required this.toSize,
     required this.productId,
-    required this.onAnimationEnd,
+    required this.onEnd,
   });
 
-  final Offset startOffset;
-  final Size startSize;
-  final Offset targetOffset;
+  final Rect from;
+  final Offset to;
+  final double toSize;
   final String productId;
-  final VoidCallback onAnimationEnd;
+  final VoidCallback onEnd;
 
   @override
   State<_FlyWidget> createState() => _FlyWidgetState();
@@ -61,79 +53,52 @@ class _FlyWidget extends StatefulWidget {
 
 class _FlyWidgetState extends State<_FlyWidget>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 680),
+  );
+  late final Animation<double> _a = CurvedAnimation(
+    parent: _c,
+    curve: const Cubic(.45, .05, .4, 1),
+  );
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 680),
-    );
-
-    _animation = CurvedAnimation(
-      parent: _controller,
-      curve: const Cubic(0.45, 0.05, 0.4, 1.0),
-    );
-
-    _controller.forward().then((_) {
-      widget.onAnimationEnd();
-    });
+    _c.forward().then((_) => widget.onEnd());
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _c.dispose();
     super.dispose();
-  }
-
-  Offset _quadraticBezier(Offset p0, Offset p1, Offset p2, double t) {
-    final x = (1 - t) * (1 - t) * p0.dx + 2 * (1 - t) * t * p1.dx + t * t * p2.dx;
-    final y = (1 - t) * (1 - t) * p0.dy + 2 * (1 - t) * t * p1.dy + t * t * p2.dy;
-    return Offset(x, y);
   }
 
   @override
   Widget build(BuildContext context) {
-    final p0 = Offset(
-      widget.startOffset.dx + widget.startSize.width / 2 - 22,
-      widget.startOffset.dy + widget.startSize.height / 2 - 22,
-    );
-    final p2 = widget.targetOffset;
-    final minTop = math.min(p0.dy, p2.dy);
-    final p1 = Offset((p0.dx + p2.dx) / 2, minTop - 140);
-
+    final p0 = widget.from.center;
+    final p2 = widget.to;
+    final s0 = math.min(widget.from.width, 120.0);
+    final cx = (p0.dx + p2.dx) / 2 + (p2.dx > p0.dx ? -40 : 40);
+    final cy = math.min(p0.dy, p2.dy) - 140;
     return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        final t = _animation.value;
-        final currentPos = _quadraticBezier(p0, p1, p2, t);
-        final currentScale = 1.0 - t * 0.45;
-        final currentAngle = (22 * math.pi / 180) * math.sin(t * math.pi);
-
+      animation: _a,
+      builder: (context, _) {
+        final t = _a.value;
+        final u = 1 - t;
+        final x = u * u * p0.dx + 2 * u * t * cx + t * t * p2.dx;
+        final y = u * u * p0.dy + 2 * u * t * cy + t * t * p2.dy;
+        final size = s0 + (widget.toSize - s0) * t;
         return Positioned(
-          left: currentPos.dx,
-          top: currentPos.dy,
-          child: Transform.rotate(
-            angle: currentAngle,
-            child: Transform.scale(
-              scale: currentScale,
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 8,
-                      offset: Offset(0, 3),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(4),
+          left: x - size / 2,
+          top: y - size / 2,
+          width: size,
+          height: size,
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: _c.value > 0.97 ? .6 : 1,
+              child: Transform.rotate(
+                angle: t * 22 * math.pi / 180,
                 child: Image.asset(
                   CaAssets.product(widget.productId),
                   fit: BoxFit.contain,
