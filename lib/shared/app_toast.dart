@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import '../app/navigation.dart';
 
+/// Toast del HTML: izquierda/derecha 18 px, 112 px sobre el borde inferior,
+/// fondo #121A33, radio 14, acción en #8FB0FF.
 class AppToast {
   static OverlayEntry? _currentEntry;
 
@@ -13,41 +16,36 @@ class AppToast {
     _currentEntry?.remove();
     _currentEntry = null;
 
-    final overlay = Overlay.of(context);
+    final overlay =
+        rootNavigatorKey.currentState?.overlay ?? Overlay.maybeOf(context);
+    if (overlay == null) return;
 
     late OverlayEntry entry;
     entry = OverlayEntry(
       builder: (context) => Positioned(
-        bottom: 96,
-        left: 20,
-        right: 20,
+        bottom: 112,
+        left: 18,
+        right: 18,
         child: Material(
           color: Colors.transparent,
           child: TweenAnimationBuilder<double>(
             tween: Tween(begin: 0.0, end: 1.0),
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut,
             builder: (context, value, child) {
               return Opacity(
                 opacity: value,
                 child: Transform.translate(
-                  offset: Offset(0, 16 * (1 - value)),
+                  offset: Offset(0, 18 * (1 - value)),
                   child: child,
                 ),
               );
             },
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
               decoration: BoxDecoration(
-                color: const Color(0xFF121A33), // toast token
+                color: const Color(0xFF121A33),
                 borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
               ),
               child: Row(
                 children: [
@@ -56,25 +54,32 @@ class AppToast {
                       message,
                       style: const TextStyle(
                         fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                        height: 1.35,
+                        fontWeight: FontWeight.w400,
                         color: Colors.white,
                       ),
                     ),
                   ),
                   if (actionLabel != null) ...[
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     GestureDetector(
+                      behavior: HitTestBehavior.opaque,
                       onTap: () {
-                        entry.remove();
-                        _currentEntry = null;
+                        if (_currentEntry == entry) {
+                          entry.remove();
+                          _currentEntry = null;
+                        }
                         onAction?.call();
                       },
-                      child: Text(
-                        actionLabel,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF4B86FF),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Text(
+                          actionLabel,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF8FB0FF),
+                          ),
                         ),
                       ),
                     ),

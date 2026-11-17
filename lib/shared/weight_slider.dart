@@ -1,3 +1,4 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import '../core/haptics.dart';
 import '../core/tokens.dart';
@@ -59,145 +60,171 @@ class _WeightSliderState extends State<WeightSlider> {
     final tokens = context.tokens;
     final frac = ((_val - minKg) / (maxKg - minKg)).clamp(0.0, 1.0);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: tokens.soft,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          // Header row: "¿Cuánto llevas?" & "1.5 kg"
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '¿Cuánto llevas?',
-                style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w600,
-                  color: tokens.ink,
+    return Semantics(
+      slider: true,
+      label: 'Peso',
+      value: formatWeight(_val),
+      increasedValue: formatWeight((_val + step).clamp(minKg, maxKg)),
+      decreasedValue: formatWeight((_val - step).clamp(minKg, maxKg)),
+      onIncrease: () {
+        final v = (_val + step).clamp(minKg, maxKg).toDouble();
+        setState(() => _val = v);
+        widget.onChanged(v);
+      },
+      onDecrease: () {
+        final v = (_val - step).clamp(minKg, maxKg).toDouble();
+        setState(() => _val = v);
+        widget.onChanged(v);
+      },
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+        decoration: BoxDecoration(
+          color: tokens.soft,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          children: [
+            // .wsh
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  '¿Cuánto llevas?',
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.35,
+                    color: tokens.ink2,
+                  ),
                 ),
-              ),
-              Text(
-                formatWeight(_val),
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: tokens.blue,
+                Text(
+                  formatWeight(_val),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.4,
+                    color: tokens.ink,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Custom Slider Track and Thumb
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final trackWidth = constraints.maxWidth;
-              final thumbLeft = (frac * trackWidth - 15).clamp(0.0, trackWidth - 30);
-
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onPanDown: (d) {
-                  setState(() => _isDragging = true);
-                  _updatePosition(d.localPosition.dx, trackWidth);
-                },
-                onPanUpdate: (d) {
-                  _updatePosition(d.localPosition.dx, trackWidth);
-                },
-                onPanEnd: (_) {
-                  setState(() => _isDragging = false);
-                },
-                onPanCancel: () {
-                  setState(() => _isDragging = false);
-                },
-                child: SizedBox(
-                  height: 36,
-                  child: Stack(
-                    alignment: Alignment.centerLeft,
-                    children: [
-                      // Inactive Track
-                      Container(
-                        height: 6,
-                        width: trackWidth,
-                        decoration: BoxDecoration(
-                          color: tokens.border,
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                      ),
-                      // Active Track
-                      Container(
-                        height: 6,
-                        width: frac * trackWidth,
-                        decoration: BoxDecoration(
-                          color: tokens.blue,
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                      ),
-                      // Thumb (30px glass/styled thumb that stretches slightly when dragging)
-                      Positioned(
-                        left: thumbLeft,
-                        child: AnimatedScale(
-                          scale: _isDragging ? 1.15 : 1.0,
-                          duration: const Duration(milliseconds: 100),
-                          child: Container(
-                            width: 30,
-                            height: 30,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white,
-                              border: Border.all(color: tokens.blue, width: 3),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: tokens.blue.withValues(alpha: 0.25),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            alignment: Alignment.center,
+              ],
+            ),
+            // .wtrack: 36 px, margen 8 0 4
+            Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 4),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final w = constraints.maxWidth;
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onPanDown: (d) {
+                      setState(() => _isDragging = true);
+                      _updatePosition(d.localPosition.dx, w);
+                    },
+                    onPanUpdate: (d) => _updatePosition(d.localPosition.dx, w),
+                    onPanEnd: (_) {
+                      CaHaptics.lightImpact();
+                      setState(() => _isDragging = false);
+                    },
+                    onPanCancel: () => setState(() => _isDragging = false),
+                    onTapDown: (d) {
+                      setState(() => _isDragging = true);
+                      _updatePosition(d.localPosition.dx, w);
+                    },
+                    onTapUp: (_) => setState(() => _isDragging = false),
+                    child: SizedBox(
+                      height: 36,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            top: 15,
                             child: Container(
-                              width: 8,
-                              height: 8,
+                              height: 6,
                               decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: tokens.blue,
+                                color: const Color(0xFFDCE2EE),
+                                borderRadius: BorderRadius.circular(3),
                               ),
                             ),
                           ),
-                        ),
+                          Positioned(
+                            left: 0,
+                            top: 15,
+                            child: Container(
+                              height: 6,
+                              width: frac * w,
+                              decoration: BoxDecoration(
+                                color: tokens.blue,
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                          ),
+                          // pulgar de vidrio de 30 px que se estira al arrastrar
+                          Positioned(
+                            left: frac * w - 15,
+                            top: 3,
+                            child: AnimatedScale(
+                              scale: _isDragging ? 1.12 : 1,
+                              duration: const Duration(milliseconds: 200),
+                              child: Transform.scale(
+                                scaleX: _isDragging ? 1.25 / 1.12 : 1,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(15),
+                                  child: BackdropFilter(
+                                    filter:
+                                        ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                    child: Container(
+                                      width: 30,
+                                      height: 30,
+                                      decoration: BoxDecoration(
+                                        color:
+                                            Colors.white.withValues(alpha: .6),
+                                        borderRadius: BorderRadius.circular(15),
+                                        border: Border.all(
+                                          color: Colors.white
+                                              .withValues(alpha: .8),
+                                        ),
+                                        boxShadow: const [
+                                          BoxShadow(
+                                            color: Color(0x590A1E5A),
+                                            blurRadius: 12,
+                                            spreadRadius: -2,
+                                            offset: Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            // .wtk
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                for (final t in const ['250 g', '1 kg', '2 kg', '3 kg'])
+                  Text(
+                    t,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      height: 1.35,
+                      color: tokens.ink3,
+                    ),
                   ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 8),
-
-          // Tick marks: 250 g · 1 kg · 2 kg · 3 kg
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildTick('250 g', tokens),
-              _buildTick('1 kg', tokens),
-              _buildTick('2 kg', tokens),
-              _buildTick('3 kg', tokens),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTick(String text, CaTokens tokens) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w500,
-        color: tokens.ink3,
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -44,48 +44,76 @@ class _FlipCounterState extends State<FlipCounter> {
     final minutes = (_remaining.inMinutes % 60).toString().padLeft(2, '0');
     final seconds = (_remaining.inSeconds % 60).toString().padLeft(2, '0');
 
+    // Individual digits matching HTML prototype: .flip .dg (20x26, r=6)
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _buildBox(hours),
+        _buildDigit(hours[0]),
+        const SizedBox(width: 2),
+        _buildDigit(hours[1]),
         _buildSeparator(),
-        _buildBox(minutes),
+        _buildDigit(minutes[0]),
+        const SizedBox(width: 2),
+        _buildDigit(minutes[1]),
         _buildSeparator(),
-        _buildBox(seconds),
+        _buildDigit(seconds[0]),
+        const SizedBox(width: 2),
+        _buildDigit(seconds[1]),
       ],
     );
   }
 
-  Widget _buildBox(String text) {
+  Widget _buildDigit(String d) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      width: 19,
+      height: 25,
       decoration: BoxDecoration(
-        color: widget.isLight
-            ? Colors.white
-            : const Color(0xFF121A33), // toast dark color
-        borderRadius: BorderRadius.circular(8),
+        color: widget.isLight ? Colors.white : const Color(0xFF121A33),
+        borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w800,
-          fontFamily: 'Inter',
-          color: widget.isLight ? const Color(0xFF0B2A73) : Colors.white,
-        ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Middle split seam line matching .flip .dg::after
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 12,
+            child: Container(
+              height: 1,
+              color: widget.isLight
+                  ? const Color(0x1A0B2A73)
+                  : Colors.white.withValues(alpha: 0.18),
+            ),
+          ),
+          Text(
+            d,
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+              color: widget.isLight
+                  ? const Color(0xFF0B2A73)
+                  : Colors.white,
+              height: 1.0,
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildSeparator() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 2),
       child: Text(
         ':',
         style: TextStyle(
-          fontSize: 16,
+          fontSize: 14,
           fontWeight: FontWeight.w700,
-          color: widget.isLight ? Colors.white : const Color(0xFF121A33),
+          color: widget.isLight
+              ? Colors.white
+              : const Color(0xFF0F1324),
+          height: 1.0,
         ),
       ),
     );
