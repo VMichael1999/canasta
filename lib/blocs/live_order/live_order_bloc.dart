@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/initial_data.dart';
@@ -62,7 +63,7 @@ class LiveOrderState extends Equatable {
   const LiveOrderState({
     required this.order,
     this.stage = 2, // 0: Pedido hecho, 1: Confirmado, 2: En camino, 3: Entregado
-    this.routeProgress = 0.35, // 0..1
+    this.routeProgress = 0.32, // 0..1
     this.distanceKm = 1.4,
     this.minsLeft = 11,
     this.nearAlertTriggered = false,
@@ -136,12 +137,24 @@ class LiveOrderBloc extends Bloc<LiveOrderEvent, LiveOrderState> {
     on<LiveOrderDelivered>(_onDelivered);
     on<LiveOrderSetOrder>(_onSetOrder);
 
-    _timer = Timer.periodic(const Duration(seconds: 2), (_) {
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       add(const LiveOrderTick());
     });
   }
 
   Timer? _timer;
+  DateTime _start = DateTime.now();
+
+  /// Distancia total de la ruta (KM del HTML).
+  static const double totalKm = 2.1;
+
+  static int minsFor(int stage, double rp) => stage >= 3
+      ? 0
+      : stage == 2
+          ? math.max(1, ((1 - rp) * 16).ceil())
+          : stage == 1
+              ? 18
+              : 24;
 
   @override
   Future<void> close() {
@@ -150,42 +163,57 @@ class LiveOrderBloc extends Bloc<LiveOrderEvent, LiveOrderState> {
   }
 
   void _onSetOrder(LiveOrderSetOrder event, Emitter<LiveOrderState> emit) {
+    _start = DateTime.now();
     emit(state.copyWith(
       order: event.order,
-      routeProgress: 0.1,
-      minsLeft: 15,
-      distanceKm: 2.2,
-      stage: 2,
+      routeProgress: 0,
+      minsLeft: 24,
+      distanceKm: totalKm,
+      stage: 0,
+      nearAlertTriggered: false,
+      deliveredAlertTriggered: false,
     ));
   }
 
+  /// Cada segundo: pedido hecho → confirmado (5 s) → en camino (12 s); luego la
+  /// moto avanza 0.6 % por segundo. Al 86 % avisa; al 100 % entrega.
   void _onTick(LiveOrderTick event, Emitter<LiveOrderState> emit) {
-    if (state.stage >= 3) return; // already delivered
+    if (state.stage >= 3) return;
+    final age = DateTime.now().difference(_start).inSeconds;
 
-    final nextProgress = (state.routeProgress + 0.02).clamp(0.0, 1.0);
-    final nextKm = ((1.0 - nextProgress) * 2.2).clamp(0.0, 3.0);
-    final nextMins = (nextKm * 6).ceil();
-
-    bool triggerNear = state.nearAlertTriggered;
-    bool triggerDelivered = state.deliveredAlertTriggered;
-    int nextStage = state.stage;
-
-    if (nextProgress >= 0.86 && !state.nearAlertTriggered) {
-      triggerNear = true;
+    if (state.stage == 0) {
+      if (age > 5) {
+        emit(state.copyWith(stage: 1, minsLeft: minsFor(1, 0)));
+      }
+      return;
+    }
+    if (state.stage == 1) {
+      if (age > 12) {
+        emit(state.copyWith(
+            stage: 2, routeProgress: 0, minsLeft: minsFor(2, 0)));
+      }
+      return;
     }
 
-    if (nextProgress >= 1.0) {
-      triggerDelivered = true;
-      nextStage = 3;
+    final prev = state.routeProgress;
+    final next = math.min(1.0, prev + 0.006);
+    var nearTriggered = state.nearAlertTriggered;
+    var delivered = state.deliveredAlertTriggered;
+    var stage = state.stage;
+    if (prev < 0.86 && next >= 0.86 && !nearTriggered) {
+      nearTriggered = true;
     }
-
+    if (next >= 1.0) {
+      delivered = true;
+      stage = 3;
+    }
     emit(state.copyWith(
-      routeProgress: nextProgress,
-      distanceKm: double.parse(nextKm.toStringAsFixed(1)),
-      minsLeft: nextMins,
-      stage: nextStage,
-      nearAlertTriggered: triggerNear,
-      deliveredAlertTriggered: triggerDelivered,
+      routeProgress: next,
+      distanceKm: double.parse((totalKm * (1 - next)).toStringAsFixed(1)),
+      minsLeft: minsFor(stage, next),
+      stage: stage,
+      nearAlertTriggered: nearTriggered,
+      deliveredAlertTriggered: delivered,
     ));
   }
 

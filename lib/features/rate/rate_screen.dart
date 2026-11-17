@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../blocs/live_order/live_order_bloc.dart';
 import '../../blocs/orders/orders_cubit.dart';
 import '../../core/assets.dart';
 import '../../core/haptics.dart';
 import '../../core/tokens.dart';
+import '../../shared/app_svg_icon.dart';
 import '../../shared/app_toast.dart';
 
 class RateScreen extends StatefulWidget {
@@ -15,22 +17,24 @@ class RateScreen extends StatefulWidget {
 }
 
 class _RateScreenState extends State<RateScreen> {
-  int _stars = 5;
+  int _stars = 0;
   final Set<String> _selectedTags = {};
   final TextEditingController _commentCtrl = TextEditingController();
 
   final List<String> _goodTags = [
     'Llegó a tiempo',
     'Productos frescos',
-    'Buen trato',
-    'Todo completo',
+    'Bien empacado',
+    'Repartidor amable',
+    'Buen precio',
   ];
 
   final List<String> _badTags = [
     'Llegó tarde',
     'Producto en mal estado',
-    'Faltó algo',
-    'Trato poco amable',
+    'Faltó un producto',
+    'Mal empacado',
+    'Repartidor poco amable',
   ];
 
   String get _reactionWord {
@@ -46,7 +50,7 @@ class _RateScreenState extends State<RateScreen> {
       case 5:
         return '¡Excelente!';
       default:
-        return '';
+        return 'Toca una estrella';
     }
   }
 
@@ -65,7 +69,7 @@ class _RateScreenState extends State<RateScreen> {
   void _submit() {
     CaHaptics.mediumImpact();
     context.read<OrdersCubit>().rateOrder(
-          'CA-87511',
+          context.read<LiveOrderBloc>().state.order.id,
           _stars,
           _selectedTags.toList(),
           _commentCtrl.text.trim(),
@@ -74,15 +78,16 @@ class _RateScreenState extends State<RateScreen> {
     if (_stars < 4) {
       AppToast.show(
         context,
-        'Lamentamos tu mala experiencia.',
+        'Gracias. Revisaremos lo que pasó.',
         actionLabel: 'Pedir ayuda',
         onAction: () => context.push('/help'),
       );
     } else {
-      AppToast.show(context, '¡Gracias por calificar!');
+      AppToast.show(context, '¡Gracias! Le pasamos tus estrellas a Carlos.');
     }
 
-    context.pop();
+    context.read<OrdersCubit>().setSegment('past');
+    context.go('/orders');
   }
 
   @override
@@ -92,155 +97,228 @@ class _RateScreenState extends State<RateScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => context.pop(),
+      body: Padding(
+        padding: EdgeInsets.only(
+          top: (MediaQuery.of(context).padding.top - 6).clamp(0.0, 80.0),
         ),
-        title: const Text(
-          'Califica tu pedido',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-        ),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          child: Column(
-            children: [
-              // Courier avatar
-              ClipRRect(
-                borderRadius: BorderRadius.circular(35),
-                child: Image.asset(
-                  CaAssets.rider,
-                  width: 70,
-                  height: 70,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Carlos Huamán',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: tokens.ink,
-                ),
-              ),
-              Text(
-                'Tu repartidor en este pedido',
-                style: TextStyle(fontSize: 13, color: tokens.ink2),
-              ),
-              const SizedBox(height: 24),
-
-              // 5 Stars
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(5, (index) {
-                  final starNum = index + 1;
-                  final isFilled = starNum <= _stars;
-
-                  return GestureDetector(
-                    onTap: () => _onStarTapped(starNum),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                      child: Icon(
-                        isFilled ? Icons.star_rounded : Icons.star_border_rounded,
-                        size: 42,
-                        color: tokens.sun,
+        child: Column(
+          children: [
+            // Top Bar (.top3)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(22, 0, 22, 10),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => context.pop(),
+                    behavior: HitTestBehavior.opaque,
+                    child: SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: Center(
+                        child: AppSvgIcon('x', size: 24, color: tokens.ink),
                       ),
                     ),
-                  );
-                }),
+                  ),
+                  Expanded(
+                    child: Text(
+                      'Califica tu pedido',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: tokens.ink,
+                        letterSpacing: -0.01 * 18,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 44),
+                ],
               ),
-              const SizedBox(height: 8),
+            ),
 
-              // Reaction word
-              Text(
-                _reactionWord,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: _stars >= 4 ? tokens.green : tokens.bad,
+            // Content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(22, 4, 22, 32),
+                child: Column(
+                  children: [
+                    // Header with Avatar
+                    Container(
+                      width: 84,
+                      height: 84,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: tokens.blueSoft,
+                      ),
+                      child: ClipOval(
+                        child: Image.asset(
+                          CaAssets.rider,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      '¿Cómo estuvo tu pedido?',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: tokens.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'CA-87654 · entregado por Carlos',
+                      style: TextStyle(fontSize: 13.5, color: tokens.ink2),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Stars
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        final starNum = index + 1;
+                        final isFilled = starNum <= _stars;
+
+                        return GestureDetector(
+                          onTap: () => _onStarTapped(starNum),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            child: Icon(
+                              isFilled
+                                  ? Icons.star_rounded
+                                  : Icons.star_outline_rounded,
+                              size: 44,
+                              color: isFilled
+                                  ? const Color(0xFFF59E0B)
+                                  : tokens.ink3,
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _reactionWord,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: tokens.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 26),
+
+                    if (_stars > 0) ...[
+                    // Tags
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        _stars >= 4
+                            ? '¿Qué te gustó?'
+                            : '¿Qué podemos mejorar?',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: tokens.ink2,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: currentTags.map((tag) {
+                        final isSelected = _selectedTags.contains(tag);
+                        return GestureDetector(
+                          onTap: () {
+                            CaHaptics.selectionClick();
+                            setState(() {
+                              if (isSelected) {
+                                _selectedTags.remove(tag);
+                              } else {
+                                _selectedTags.add(tag);
+                              }
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 9),
+                            decoration: BoxDecoration(
+                              color: isSelected ? tokens.blue : tokens.chip,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              tag,
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: isSelected ? Colors.white : tokens.ink,
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Optional Comment
+                    TextField(
+                      controller: _commentCtrl,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: 'Cuéntanos más (opcional)',
+                        hintStyle: TextStyle(
+                          fontSize: 14,
+                          color: tokens.ink3,
+                        ),
+                        contentPadding: const EdgeInsets.all(14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: tokens.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: tokens.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide:
+                              BorderSide(color: tokens.blue, width: 1.5),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    ],
+                    // Submit button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 54,
+                      child: ElevatedButton(
+                        onPressed: _stars == 0 ? null : _submit,
+                        style: ElevatedButton.styleFrom(
+                          disabledBackgroundColor: const Color(0xFFB9C9F5),
+                          disabledForegroundColor: Colors.white,
+                          backgroundColor: tokens.blue,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          'Enviar calificación',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 24),
-
-              // Tags
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                alignment: WrapAlignment.center,
-                children: currentTags.map((tag) {
-                  final isSel = _selectedTags.contains(tag);
-                  return ChoiceChip(
-                    label: Text(tag),
-                    selected: isSel,
-                    onSelected: (_) {
-                      CaHaptics.selectionClick();
-                      setState(() {
-                        if (isSel) {
-                          _selectedTags.remove(tag);
-                        } else {
-                          _selectedTags.add(tag);
-                        }
-                      });
-                    },
-                    selectedColor: tokens.blueSoft,
-                    backgroundColor: tokens.chip,
-                    labelStyle: TextStyle(
-                      fontSize: 13,
-                      fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
-                      color: isSel ? tokens.blue : tokens.ink,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(19),
-                    ),
-                    showCheckmark: false,
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 24),
-
-              // Comment TextField
-              TextField(
-                controller: _commentCtrl,
-                maxLines: 4,
-                decoration: InputDecoration(
-                  hintText: 'Cuéntanos más detalles (opcional)…',
-                  hintStyle: TextStyle(fontSize: 14, color: tokens.ink3),
-                  filled: true,
-                  fillColor: tokens.chip,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Submit Button
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: tokens.blue,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Enviar calificación',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

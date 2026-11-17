@@ -59,7 +59,9 @@ class OrdersCubit extends Cubit<OrdersState> {
   void rateOrder(String orderId, int stars, List<String> tags, String comment) {
     final updated = state.orders.map((o) {
       if (o.id == orderId) {
+        // Al calificar, el pedido queda completado (pasa a «Anteriores»).
         return o.copyWith(
+          status: OrderStatus.delivered,
           rated: true,
           ratingStars: stars,
           ratingTags: tags,
