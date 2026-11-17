@@ -5,9 +5,9 @@ class CaTypography {
 
   static const TextStyle display = TextStyle(
     fontFamily: fontFamily,
-    fontSize: 50,
+    fontSize: 52,
     fontWeight: FontWeight.w800,
-    letterSpacing: -2.25, // -4.5%
+    letterSpacing: -2.34, // -4.5%
     color: Colors.white,
     height: 1.1,
   );
