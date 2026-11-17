@@ -9,6 +9,7 @@ import '../features/deals/deals_screen.dart';
 import '../features/help/help_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/location/location_screen.dart';
+import '../features/navigation/ui/navigation_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/order_done/order_done_screen.dart';
 import '../features/orders/orders_screen.dart';
@@ -20,14 +21,16 @@ import '../features/search/search_screen.dart';
 import '../features/splash/splash_screen.dart';
 import '../features/tracking/tracking_screen.dart';
 import '../shared/cart_bubble_scope.dart';
+import '../shared/floating_cart_bubble.dart' show ModalWatcher;
+import 'navigation.dart';
 import 'scaffold_with_nav_bar.dart';
 
-final GlobalKey<NavigatorState> _rootNavigatorKey =
-    GlobalKey<NavigatorState>(debugLabel: 'root');
-
 final GoRouter canastaRouter = GoRouter(
-  navigatorKey: _rootNavigatorKey,
-  initialLocation: '/splash',
+  navigatorKey: rootNavigatorKey,
+  observers: [ModalWatcher()],
+  // `--dart-define=INITIAL_ROUTE=/cart` abre directamente otra pantalla (útil para pruebas)
+  initialLocation:
+      const String.fromEnvironment('INITIAL_ROUTE', defaultValue: '/splash'),
   routes: [
     GoRoute(
       path: '/splash',
@@ -105,41 +108,40 @@ final GoRouter canastaRouter = GoRouter(
     // Top-level pushed screens with CartBubble overlay where specified
     GoRoute(
       path: '/list',
-      builder: (context, state) => CartBubbleOverlayWrapper(
+      pageBuilder: (context, state) => CustomTransitionPage<void>(
+        key: state.pageKey,
+        transitionDuration: const Duration(milliseconds: 120),
+        reverseTransitionDuration: const Duration(milliseconds: 250),
         child: ProductListScreen(
           onAddProduct: (key, id) =>
               CartBubbleScope.flyToBubble(context, key, id),
         ),
+        transitionsBuilder: (context, animation, secondary, child) =>
+            FadeTransition(opacity: animation, child: child),
       ),
     ),
     GoRoute(
       path: '/search',
-      builder: (context, state) => CartBubbleOverlayWrapper(
-        child: SearchScreen(
-          onAddProduct: (key, id) =>
-              CartBubbleScope.flyToBubble(context, key, id),
-        ),
+      builder: (context, state) => SearchScreen(
+        onAddProduct: (key, id) =>
+            CartBubbleScope.flyToBubble(context, key, id),
       ),
     ),
     GoRoute(
       path: '/deals',
-      builder: (context, state) => CartBubbleOverlayWrapper(
-        child: DealsScreen(
-          onAddProduct: (key, id) =>
-              CartBubbleScope.flyToBubble(context, key, id),
-        ),
+      builder: (context, state) => DealsScreen(
+        onAddProduct: (key, id) =>
+            CartBubbleScope.flyToBubble(context, key, id),
       ),
     ),
     GoRoute(
       path: '/product/:id',
       builder: (context, state) {
         final id = state.pathParameters['id'] ?? 'avocado';
-        return CartBubbleOverlayWrapper(
-          child: ProductDetailScreen(
-            productId: id,
-            onAddProduct: (key, pid) =>
-                CartBubbleScope.flyToBubble(context, key, pid),
-          ),
+        return ProductDetailScreen(
+          productId: id,
+          onAddProduct: (key, pid) =>
+              CartBubbleScope.flyToBubble(context, key, pid),
         );
       },
     ),
@@ -158,6 +160,10 @@ final GoRouter canastaRouter = GoRouter(
     GoRoute(
       path: '/tracking',
       builder: (context, state) => const TrackingScreen(),
+    ),
+    GoRoute(
+      path: '/navigation',
+      builder: (context, state) => const NavigationScreen(),
     ),
     GoRoute(
       path: '/rate',
