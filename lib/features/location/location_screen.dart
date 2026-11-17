@@ -1,10 +1,14 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../blocs/address/address_cubit.dart';
 import '../../core/tokens.dart';
 import '../../domain/models/address.dart';
+import '../../shared/app_svg_icon.dart';
+import '../../shared/app_toast.dart';
 import '../../shared/illustrated_map.dart';
+import '../navigation/ui/map_preview.dart';
 
 class LocationScreen extends StatelessWidget {
   const LocationScreen({super.key});
@@ -151,259 +155,319 @@ class LocationScreen extends StatelessWidget {
     );
   }
 
+  void _showCoverageSheet(BuildContext context, String district) {
+    final tokens = context.tokens;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.fromLTRB(22, 10, 22, 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 5,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD8DCE5),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+            // .zoneart
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: SizedBox(
+                height: 150,
+                child: ColorFiltered(
+                  colorFilter: const ColorFilter.matrix(<double>[
+                    .6063, .3576, .0361, 0, 0, //
+                    .1063, .8576, .0361, 0, 0,
+                    .1063, .3576, .5361, 0, 0,
+                    0, 0, 0, 1, 0,
+                  ]),
+                  child: Stack(
+                    children: [
+                      const Positioned.fill(
+                        child: IllustratedMap(
+                          showExpandButton: false,
+                          showRoute: false,
+                          showMarker: false,
+                          opacity: .7,
+                        ),
+                      ),
+                      Center(
+                        child: Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: tokens.bad,
+                            shape: BoxShape.circle,
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x33E0412F),
+                                spreadRadius: 10,
+                              ),
+                            ],
+                          ),
+                          alignment: Alignment.center,
+                          child: const AppSvgIcon('x',
+                              size: 22, color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Aún no llegamos a $district',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
+                color: tokens.ink,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'Hoy entregamos en Miraflores, San Isidro, Barranco, Surco, San Borja, Lince y alrededores. Estamos creciendo cada mes.',
+              style: TextStyle(fontSize: 14.5, height: 1.35, color: tokens.ink2),
+            ),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: () {
+                Navigator.of(ctx).pop();
+                AppToast.show(context,
+                    'Listo. Te escribimos apenas lleguemos a tu zona.');
+              },
+              child: Container(
+                height: 54,
+                decoration: BoxDecoration(
+                  color: tokens.blue,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                alignment: Alignment.center,
+                child: const Text(
+                  'Avísame cuando lleguemos',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            GestureDetector(
+              onTap: () {
+                Navigator.of(ctx).pop();
+              },
+              child: Container(
+                height: 54,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: tokens.border, width: 1.5),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'Usar otra dirección',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: tokens.ink,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).whenComplete(() {
+      if (context.mounted) {
+        context.read<AddressCubit>().dismissCoverageWarning();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final top = MediaQuery.of(context).padding.top;
 
     return BlocConsumer<AddressCubit, AddressState>(
-      listener: (context, state) {
-        if (state.hasCoverageWarning) {
-          showModalBottomSheet(
-            context: context,
-            backgroundColor: Colors.transparent,
-            builder: (ctx) => Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-              ),
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: tokens.badSoft,
-                    ),
-                    alignment: Alignment.center,
-                    child: Icon(Icons.location_off_rounded,
-                        size: 28, color: tokens.bad),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Aún no llegamos a ${state.coverageWarningDistrict}',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: tokens.ink,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Estamos expandiendo nuestra cobertura en Lima. Te avisaremos apenas lleguemos a tu zona.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: tokens.ink2,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        context.read<AddressCubit>().dismissCoverageWarning();
-                        Navigator.of(ctx).pop();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: tokens.blue,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: const Text('Usar otra dirección'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-      },
+      listenWhen: (a, b) =>
+          !a.hasCoverageWarning && b.hasCoverageWarning,
+      listener: (context, state) =>
+          _showCoverageSheet(context, state.coverageWarningDistrict ?? 'tu zona'),
       builder: (context, state) {
         return Scaffold(
           backgroundColor: Colors.white,
           body: Stack(
             children: [
-              // Map background
-              Positioned.fill(
-                bottom: 320,
-                child: const IllustratedMap(
-                  progress: 0.5,
+              // .lmapw: 520 px de mapa
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                height: 520,
+                child: IllustratedMap(
                   showExpandButton: false,
+                  showRoute: false,
+                  showMarker: false,
+                  mapChild: GoogleMapPreview(zoom: 16),
                 ),
               ),
-
-              // Back button on top
+              // .top2.clear: volver
               Positioned(
-                top: 56,
-                left: 20,
+                top: (top - 4) < 58 ? 58 : top - 4,
+                left: 22,
                 child: GestureDetector(
-                  onTap: () => context.pop(),
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                  onTap: () => context.canPop() ? context.pop() : context.go('/login'),
+                  child: Semantics(
+                    button: true,
+                    label: 'Volver',
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: tokens.border),
+                      ),
+                      alignment: Alignment.center,
+                      child: AppSvgIcon('arrowl', size: 21, color: tokens.ink),
                     ),
-                    alignment: Alignment.center,
-                    child: Icon(Icons.arrow_back, color: tokens.ink),
                   ),
                 ),
               ),
 
-              // Bottom Sheet with Saved Addresses
-              Align(
-                alignment: Alignment.bottomCenter,
+              // .locsheet
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
                 child: Container(
-                  height: 380,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.white,
                     borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(28)),
+                        BorderRadius.vertical(top: Radius.circular(30)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.12),
-                        blurRadius: 20,
-                        offset: const Offset(0, -4),
+                        color: Color(0x4D0A1E5A),
+                        blurRadius: 30,
+                        spreadRadius: -18,
+                        offset: Offset(0, -14),
                       ),
                     ],
                   ),
-                  padding: const EdgeInsets.fromLTRB(22, 16, 22, 24),
+                  padding: const EdgeInsets.fromLTRB(22, 10, 22, 30),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Center(
                         child: Container(
-                          width: 36,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: tokens.border,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Dirección de entrega',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: tokens.ink,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Current Location button
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Container(
                           width: 40,
-                          height: 40,
+                          height: 5,
+                          margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: tokens.blueSoft,
+                            color: const Color(0xFFD8DCE5),
+                            borderRadius: BorderRadius.circular(3),
                           ),
-                          alignment: Alignment.center,
-                          child: Icon(Icons.my_location,
-                              size: 20, color: tokens.blue),
                         ),
-                        title: Text(
-                          'Usar mi ubicación actual',
+                      ),
+                      Padding(
+                        padding: EdgeInsets.zero,
+                        child: Text(
+                          '¿Dónde te entregamos?',
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: 22,
                             fontWeight: FontWeight.w700,
-                            color: tokens.blue,
+                            letterSpacing: -0.44,
+                            color: tokens.ink,
                           ),
                         ),
-                        subtitle: Text(
-                          'Miraflores, Lima',
-                          style: TextStyle(fontSize: 13, color: tokens.ink2),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          'Elige una dirección guardada o usa tu ubicación.',
+                          style: TextStyle(
+                              fontSize: 14.5, height: 1.35, color: tokens.ink2),
                         ),
+                      ),
+                      // .lbtn
+                      _AddrTile(
+                        top: 18,
+                        icon: 'locate',
+                        title: 'Usar mi ubicación actual',
+                        subtitle: 'Av. José Pardo 450, Miraflores',
+                        soft: true,
                         onTap: () {
-                          context.read<AddressCubit>().selectAddress(
-                                state.addresses.first,
-                              );
-                          context.pop();
+                          context
+                              .read<AddressCubit>()
+                              .selectAddress(state.addresses.first);
+                          AppToast.show(context, 'Te ubicamos en Miraflores.');
                         },
                       ),
-                      const Divider(),
-
-                      // Saved Addresses
-                      Expanded(
-                        child: ListView.separated(
-                          itemCount: state.addresses.length,
-                          separatorBuilder: (_, __) =>
-                              Divider(color: tokens.line, height: 1),
-                          itemBuilder: (context, index) {
-                            final addr = state.addresses[index];
-                            final isSel = state.selectedAddress.id == addr.id;
-
-                            return ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: Icon(
-                                addr.tag == 'Casa'
-                                    ? Icons.home_outlined
-                                    : Icons.work_outline,
-                                color: isSel ? tokens.blue : tokens.ink2,
-                              ),
-                              title: Text(
-                                '${addr.tag} · ${addr.line}',
+                      for (final a in state.addresses)
+                        _AddrTile(
+                          top: 10,
+                          icon: a.tag == 'Casa' ? 'home' : 'brief',
+                          title: a.tag,
+                          subtitle: '${a.line}, ${a.district}',
+                          selected: state.selectedAddress.id == a.id,
+                          onTap: () =>
+                              context.read<AddressCubit>().selectAddress(a),
+                        ),
+                      // .addnew
+                      GestureDetector(
+                        onTap: () => _showAddAddressSheet(context),
+                        behavior: HitTestBehavior.opaque,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(0, 14, 0, 12),
+                          child: Row(
+                            children: [
+                              AppSvgIcon('plus', size: 18, color: tokens.blue),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Agregar dirección',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  fontWeight:
-                                      isSel ? FontWeight.w700 : FontWeight.w500,
-                                  color: tokens.ink,
+                                  fontWeight: FontWeight.w500,
+                                  color: tokens.blue,
                                 ),
                               ),
-                              subtitle: Text(
-                                '${addr.district}${addr.reference.isNotEmpty ? ' · ${addr.reference}' : ''}',
-                                style: TextStyle(
-                                    fontSize: 12.5, color: tokens.ink2),
-                              ),
-                              trailing: isSel
-                                  ? Icon(Icons.check_circle,
-                                      color: tokens.blue, size: 20)
-                                  : null,
-                              onTap: () {
-                                context
-                                    .read<AddressCubit>()
-                                    .selectAddress(addr);
-                                context.pop();
-                              },
-                            );
-                          },
+                            ],
+                          ),
                         ),
                       ),
-
-                      // Add Address Button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: OutlinedButton.icon(
-                          onPressed: () => _showAddAddressSheet(context),
-                          icon: const Icon(Icons.add),
-                          label: const Text('Agregar dirección'),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: tokens.border, width: 1.5),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                      GestureDetector(
+                        onTap: () => context.go('/home'),
+                        child: Container(
+                          height: 54,
+                          decoration: BoxDecoration(
+                            color: tokens.blue,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          alignment: Alignment.center,
+                          child: const Text(
+                            'Entregar aquí',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
                             ),
                           ),
                         ),
@@ -418,4 +482,195 @@ class LocationScreen extends StatelessWidget {
       },
     );
   }
+}
+
+class _AddrTile extends StatelessWidget {
+  const _AddrTile({
+    required this.top,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.soft = false,
+    this.selected = false,
+  });
+
+  final double top;
+  final String icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final bool soft;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    return Padding(
+      padding: EdgeInsets.only(top: top),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: soft ? tokens.blueSoft : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          foregroundDecoration: soft
+              ? null
+              : BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: selected ? tokens.blue : tokens.line,
+                    width: selected ? 1.5 : 1,
+                  ),
+                ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: soft ? tokens.blue : tokens.blueSoft,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                child: AppSvgIcon(icon,
+                    size: 20, color: soft ? Colors.white : tokens.blue),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: tokens.ink,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.35,
+                        color: tokens.ink2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (selected)
+                AppSvgIcon('checkc', size: 22, color: tokens.blue),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Pin azul que flota 8 px arriba y abajo (1.6 s).
+class _FloatingPin extends StatefulWidget {
+  const _FloatingPin();
+
+  @override
+  State<_FloatingPin> createState() => _FloatingPinState();
+}
+
+class _FloatingPinState extends State<_FloatingPin>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1600),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, _) {
+        final dy = -8 * (1 - (2 * (_c.value - .5)).abs() * 1.0);
+        final up = -8 * math.sin(_c.value * math.pi);
+        return SizedBox(
+          width: 44,
+          height: 52,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                left: 14,
+                bottom: -2,
+                child: Container(
+                  width: 16,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: const Color(0x400A1E5A),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              Transform.translate(
+                offset: Offset(0, up + 0 * dy),
+                child: _PinIcon(color: tokens.blue),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _PinIcon extends StatelessWidget {
+  const _PinIcon({required this.color});
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(size: const Size(44, 44), painter: _PinPainter(color));
+  }
+}
+
+class _PinPainter extends CustomPainter {
+  _PinPainter(this.color);
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.scale(size.width / 24);
+    // M12 21.5 s-7-6-7-11.5 a7 7 0 0 1 14 0 c0 5.5-7 11.5-7 11.5z
+    final path = Path()
+      ..moveTo(12, 21.5)
+      ..cubicTo(12, 21.5, 5, 15.5, 5, 10)
+      ..arcToPoint(const Offset(19, 10),
+          radius: const Radius.circular(7), clockwise: true)
+      ..cubicTo(19, 15.5, 12, 21.5, 12, 21.5)
+      ..close();
+    canvas.drawPath(path, Paint()..color = color);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.4,
+    );
+    canvas.drawCircle(const Offset(12, 10), 2.6, Paint()..color = Colors.white);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_PinPainter old) => old.color != color;
 }

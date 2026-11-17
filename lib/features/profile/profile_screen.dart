@@ -5,6 +5,7 @@ import '../../blocs/favorites/favorites_cubit.dart';
 import '../../blocs/orders/orders_cubit.dart';
 import '../../blocs/session/session_bloc.dart';
 import '../../core/tokens.dart';
+import '../../shared/address_picker_sheet.dart';
 import '../../shared/app_svg_icon.dart';
 import '../../shared/app_toast.dart';
 
@@ -16,8 +17,9 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool _notifOffers = true;
   bool _notifOrders = true;
+  bool _notifOffers = true;
+  bool _notifNews = false;
 
   void _showLogoutDialog(BuildContext context) {
     final tokens = context.tokens;
@@ -30,34 +32,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: tokens.border,
-                borderRadius: BorderRadius.circular(2),
+            Center(
+              child: Container(
+                width: 40,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD8DCE5),
+                  borderRadius: BorderRadius.circular(3),
+                ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
             Text(
               '¿Cerrar sesión?',
               style: TextStyle(
                 fontSize: 20,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
                 color: tokens.ink,
+                letterSpacing: -0.3,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
-              'Tu carrito y direcciones guardadas seguirán aquí cuando vuelvas.',
+              'Tu carrito queda guardado en este celular.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14.5, color: tokens.ink2),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 22),
             SizedBox(
               width: double.infinity,
               height: 52,
@@ -80,10 +85,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
-              height: 50,
+              height: 48,
               child: TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
                 child: Text('Cancelar',
@@ -91,6 +96,258 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showPaymentMethodsSheet(BuildContext context) {
+    final tokens = context.tokens;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.fromLTRB(22, 14, 22, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD8DCE5),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Métodos de pago',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: tokens.ink,
+                letterSpacing: -0.3,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: tokens.line),
+              ),
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const AppSvgIcon('card',
+                        size: 22, color: Color(0xFF1A4FE0)),
+                    title: const Text('Visa •••• 4821',
+                        style: TextStyle(
+                            fontSize: 14.5, fontWeight: FontWeight.w600)),
+                    subtitle: const Text('Débito',
+                        style: TextStyle(fontSize: 12.5)),
+                  ),
+                  Divider(color: tokens.line, height: 1),
+                  ListTile(
+                    leading: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF820AD1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Text('Y',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15)),
+                    ),
+                    title: const Text('Yape',
+                        style: TextStyle(
+                            fontSize: 14.5, fontWeight: FontWeight.w600)),
+                    subtitle: const Text('Desde tu app',
+                        style: TextStyle(fontSize: 12.5)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCouponsSheet(BuildContext context) {
+    final tokens = context.tokens;
+    final coupons = [
+      {'code': 'CANASTA10', 'pct': '10 % de descuento, hasta S/ 15'},
+      {'code': 'FRESCO15', 'pct': '15 % de descuento, hasta S/ 15'},
+      {'code': 'HOLA20', 'pct': '20 % de descuento, hasta S/ 15'},
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.fromLTRB(22, 14, 22, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD8DCE5),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Cupones',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: tokens.ink,
+                letterSpacing: -0.3,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...coupons.map((c) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: tokens.blueSoft,
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: AppSvgIcon('tag', size: 18, color: tokens.blue),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              c['code']!,
+                              style: TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w700,
+                                color: tokens.ink,
+                              ),
+                            ),
+                            Text(
+                              c['pct']!,
+                              style: TextStyle(
+                                  fontSize: 12.5, color: tokens.ink2),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showNotificationsSheet(BuildContext context) {
+    final tokens = context.tokens;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: const EdgeInsets.fromLTRB(22, 14, 22, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD8DCE5),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Notificaciones',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: tokens.ink,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(height: 16),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _notifOrders,
+                activeColor: tokens.green,
+                title: const Text('Estado de mis pedidos',
+                    style:
+                        TextStyle(fontSize: 14.5, fontWeight: FontWeight.w500)),
+                onChanged: (val) {
+                  setSheetState(() => _notifOrders = val);
+                  setState(() => _notifOrders = val);
+                },
+              ),
+              Divider(color: tokens.line, height: 1),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _notifOffers,
+                activeColor: tokens.green,
+                title: const Text('Ofertas del día',
+                    style:
+                        TextStyle(fontSize: 14.5, fontWeight: FontWeight.w500)),
+                onChanged: (val) {
+                  setSheetState(() => _notifOffers = val);
+                  setState(() => _notifOffers = val);
+                },
+              ),
+              Divider(color: tokens.line, height: 1),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _notifNews,
+                activeColor: tokens.green,
+                title: const Text('Novedades de Canasta',
+                    style:
+                        TextStyle(fontSize: 14.5, fontWeight: FontWeight.w500)),
+                onChanged: (val) {
+                  setSheetState(() => _notifNews = val);
+                  setState(() => _notifNews = val);
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -105,22 +362,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text(
-          'Perfil',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
-          ),
-        ),
-      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(22, 10, 22, 110),
+          padding: const EdgeInsets.fromLTRB(22, 2, 22, 110),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // User Header: Initials Avatar + Michael Dev + michaeldev@gmail.com
+              // User Header (.pfh)
               Row(
                 children: [
                   Container(
@@ -135,12 +383,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       user.initials,
                       style: const TextStyle(
                         fontSize: 22,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w700,
                         color: Colors.white,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -148,154 +396,126 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Text(
                           user.name,
                           style: TextStyle(
-                            fontSize: 19,
-                            fontWeight: FontWeight.w800,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
                             color: tokens.ink,
+                            letterSpacing: -0.3,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          user.email,
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            color: tokens.ink2,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '+51 ${user.phone}',
+                          '${user.email} · +51 ${user.phone}',
                           style: TextStyle(
                             fontSize: 13,
-                            color: tokens.ink3,
-                            fontWeight: FontWeight.w500,
+                            color: tokens.ink2,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
+                  GestureDetector(
+                    onTap: () {
+                      AppToast.show(context, 'Edición de perfil: pronto.');
+                    },
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: tokens.border),
+                      ),
+                      alignment: Alignment.center,
+                      child: const AppSvgIcon('edit', size: 20),
+                    ),
+                  ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 22),
 
-              // Stats Row: Pedidos (3) / Ahorrado (S/ 24.50) / Favoritos (N)
+              // Stats Row (.pfs)
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 16),
                 decoration: BoxDecoration(
-                  color: tokens.chip,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: tokens.line),
                 ),
                 child: Row(
                   children: [
                     _buildStatCol('Pedidos', '$totalOrders', tokens),
-                    Container(width: 1, height: 32, color: tokens.border),
-                    _buildStatCol('Ahorrado', 'S/ 24.50', tokens),
-                    Container(width: 1, height: 32, color: tokens.border),
+                    Container(width: 1, height: 63, color: tokens.line),
+                    _buildStatCol('Ahorrado', 'S/ 28.40', tokens),
+                    Container(width: 1, height: 63, color: tokens.line),
                     _buildStatCol('Favoritos', '$favCount', tokens),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 22),
 
-              // Menu list
+              // Menu list (.mlist.big)
               _buildMenuItem(
                 icon: 'pin',
-                title: 'Direcciones guardadas',
-                subtitle: 'Casa, Trabajo',
+                title: 'Mis direcciones',
+                subtitle: '2 guardadas',
                 tokens: tokens,
-                onTap: () => context.push('/location'),
+                onTap: () => AddressPickerSheet.show(context),
               ),
               _buildMenuItem(
                 icon: 'card',
                 title: 'Métodos de pago',
-                subtitle: 'Visa •••• 4821',
+                subtitle: 'Visa •••• 4821, Yape',
                 tokens: tokens,
-                onTap: () {
-                  AppToast.show(context, 'Visa •••• 4821 activa.');
-                },
+                onTap: () => _showPaymentMethodsSheet(context),
               ),
               _buildMenuItem(
                 icon: 'heart',
-                title: 'Mis favoritos',
-                subtitle: '$favCount productos guardados',
+                title: 'Favoritos',
+                subtitle: '$favCount productos',
                 tokens: tokens,
                 onTap: () => context.push('/search'),
               ),
               _buildMenuItem(
                 icon: 'tag',
-                title: 'Cupones de descuento',
-                subtitle: '3 disponibles',
+                title: 'Cupones',
+                subtitle: 'CANASTA10 disponible',
                 tokens: tokens,
-                onTap: () => context.push('/cart'),
+                onTap: () => _showCouponsSheet(context),
+              ),
+              _buildMenuItem(
+                icon: 'bell',
+                title: 'Notificaciones',
+                subtitle: 'Pedidos y ofertas',
+                tokens: tokens,
+                onTap: () => _showNotificationsSheet(context),
               ),
               _buildMenuItem(
                 icon: 'help',
-                title: 'Centro de ayuda',
-                subtitle: 'Preguntas frecuentes y soporte',
+                title: 'Ayuda',
+                subtitle: 'Preguntas frecuentes y chat',
                 tokens: tokens,
                 onTap: () => context.push('/help'),
               ),
 
-              const SizedBox(height: 12),
-              const Divider(),
-              const SizedBox(height: 12),
-
-              // Notification switches
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                value: _notifOrders,
-                activeColor: tokens.blue,
-                title: Text(
-                  'Estado de mis pedidos',
-                  style: TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w600,
-                    color: tokens.ink,
-                  ),
-                ),
-                subtitle: Text(
-                  'Notificar cuando la moto esté cerca',
-                  style: TextStyle(fontSize: 12.5, color: tokens.ink2),
-                ),
-                onChanged: (val) => setState(() => _notifOrders = val),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                value: _notifOffers,
-                activeColor: tokens.blue,
-                title: Text(
-                  'Ofertas del día',
-                  style: TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w600,
-                    color: tokens.ink,
-                  ),
-                ),
-                subtitle: Text(
-                  'Avisos de descuentos en frutas y verduras',
-                  style: TextStyle(fontSize: 12.5, color: tokens.ink2),
-                ),
-                onChanged: (val) => setState(() => _notifOffers = val),
-              ),
-
               const SizedBox(height: 24),
 
-              // Cerrar sesión
+              // Logout Button (.btn.ghost.red)
               SizedBox(
                 width: double.infinity,
-                height: 50,
-                child: OutlinedButton.icon(
+                height: 52,
+                child: TextButton.icon(
                   onPressed: () => _showLogoutDialog(context),
-                  icon: Icon(Icons.logout, color: tokens.bad, size: 18),
+                  icon: AppSvgIcon('logout', size: 20, color: tokens.bad),
                   label: Text(
                     'Cerrar sesión',
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 15.5,
                       fontWeight: FontWeight.w700,
                       color: tokens.bad,
                     ),
                   ),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: tokens.bad.withValues(alpha: 0.3)),
+                  style: TextButton.styleFrom(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -311,25 +531,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildStatCol(String label, String value, CaTokens tokens) {
     return Expanded(
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: tokens.ink,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: tokens.ink,
+                letterSpacing: -0.02 * 17,
+              ),
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: tokens.ink2,
+            Text(
+              label,
+              style: TextStyle(
+                height: 1.35,
+                fontSize: 12,
+                color: tokens.ink2,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -341,33 +565,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required CaTokens tokens,
     required VoidCallback onTap,
   }) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: tokens.chip,
-        ),
-        alignment: Alignment.center,
-        child: AppSvgIcon(icon, size: 19, color: tokens.ink),
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 14.5,
-          fontWeight: FontWeight.w700,
-          color: tokens.ink,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(fontSize: 12.5, color: tokens.ink2),
-      ),
-      trailing:
-          Icon(Icons.arrow_forward_ios_rounded, size: 13, color: tokens.ink3),
+    return InkWell(
       onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 64),
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: tokens.line),
+          ),
+        ),
+        child: Row(
+          children: [
+            AppSvgIcon(icon, size: 22, color: tokens.blue),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: tokens.ink,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      height: 1.35,
+                      fontSize: 13,
+                      color: tokens.ink2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            AppSvgIcon('chev', size: 16, color: tokens.ink3),
+          ],
+        ),
+      ),
     );
   }
 }

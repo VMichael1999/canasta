@@ -10,7 +10,10 @@ import '../../core/assets.dart';
 import '../../core/haptics.dart';
 import '../../core/money.dart';
 import '../../core/tokens.dart';
+import '../../core/weight.dart';
 import '../../domain/models/cart_item.dart';
+import '../../shared/ca_tab_bar.dart';
+import '../../shared/address_picker_sheet.dart';
 import '../../shared/app_svg_icon.dart';
 import '../../shared/app_toast.dart';
 import '../../shared/free_delivery_progress.dart';
@@ -54,11 +57,11 @@ class _CartScreenState extends State<CartScreen> {
               children: [
                 Center(
                   child: Container(
-                    width: 36,
-                    height: 4,
+                    width: 40,
+                    height: 5,
                     decoration: BoxDecoration(
-                      color: tokens.border,
-                      borderRadius: BorderRadius.circular(2),
+                      color: const Color(0xFFD8DCE5),
+                      borderRadius: BorderRadius.circular(3),
                     ),
                   ),
                 ),
@@ -69,6 +72,7 @@ class _CartScreenState extends State<CartScreen> {
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
                     color: tokens.ink,
+                    letterSpacing: -0.3,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -83,8 +87,19 @@ class _CartScreenState extends State<CartScreen> {
                   decoration: InputDecoration(
                     hintText: 'Por ejemplo, FRESCO15',
                     errorText: err,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: tokens.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: tokens.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: tokens.blue, width: 1.5),
                     ),
                   ),
                 ),
@@ -122,9 +137,11 @@ class _CartScreenState extends State<CartScreen> {
                       ),
                       elevation: 0,
                     ),
-                    child: const Text('Aplicar código',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700)),
+                    child: const Text(
+                      'Aplicar código',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    ),
                   ),
                 ),
               ],
@@ -143,308 +160,388 @@ class _CartScreenState extends State<CartScreen> {
     return BlocBuilder<CartBloc, CartState>(
       builder: (context, state) {
         final isEmpty = state.lines.isEmpty;
+        final unitsCount = state.units;
+        final unitsLabel =
+            '$unitsCount ${unitsCount == 1 ? 'producto' : 'productos'}';
 
         return Scaffold(
           backgroundColor: Colors.white,
-          appBar: AppBar(
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => context.pop(),
+          bottomNavigationBar: const CaTabBar(activeIndex: 0),
+          body: Padding(
+            padding: EdgeInsets.only(
+              top: (MediaQuery.of(context).padding.top - 6).clamp(0.0, 80.0),
             ),
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
               children: [
-                const Text(
-                  'Mi carrito',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-                ),
-                Text(
-                  '${state.units} productos',
-                  style: TextStyle(fontSize: 12.5, color: tokens.ink2),
-                ),
-              ],
-            ),
-            actions: [
-              if (!isEmpty)
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _isEditing = !_isEditing;
-                      _selectedItems.clear();
-                    });
-                  },
-                  child: Text(
-                    _isEditing ? 'Listo' : 'Editar',
-                    style: TextStyle(
-                      color: tokens.blue,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
-                  ),
-                ),
-              const SizedBox(width: 10),
-            ],
-          ),
-          body: isEmpty
-              ? _buildEmptyState(context, tokens)
-              : SafeArea(
-                  child: Stack(
+                // Top bar (.top3): padding 56 22 10, flecha sin caja, título + conteo
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(22, 0, 22, 10),
+                  child: Row(
                     children: [
-                      SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(22, 10, 22, 160),
+                      GestureDetector(
+                        onTap: () => context.pop(),
+                        behavior: HitTestBehavior.opaque,
+                        child: Semantics(
+                          button: true,
+                          label: 'Volver',
+                          child: SizedBox(
+                            width: 34,
+                            height: 44,
+                            child: OverflowBox(
+                              alignment: Alignment.centerRight,
+                              minWidth: 44,
+                              maxWidth: 44,
+                              child: Center(
+                                child: AppSvgIcon('back',
+                                    size: 24, color: tokens.ink),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Free delivery progress
-                            FreeDeliveryProgress(
-                              missingAmount: state.missingForFree,
-                              progress: state.freeDeliveryProgress,
-                              hasFreeDelivery: state.hasFreeDelivery,
-                            ),
-                            const SizedBox(height: 20),
-
-                            // Edit Mode Bulk Delete Button
-                            if (_isEditing && _selectedItems.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: SizedBox(
-                                  width: double.infinity,
-                                  height: 48,
-                                  child: ElevatedButton.icon(
-                                    onPressed: () {
-                                      final toRemove = _selectedItems.toList();
-                                      context.read<CartBloc>().add(
-                                            CartMultipleRemoved(toRemove),
-                                          );
-                                      final count = toRemove.length;
-                                      setState(() {
-                                        _selectedItems.clear();
-                                        _isEditing = false;
-                                      });
-                                      AppToast.show(
-                                        context,
-                                        'Quitaste $count producto${count > 1 ? 's' : ''}.',
-                                        actionLabel: 'Deshacer',
-                                        onAction: () {
-                                          context
-                                              .read<CartBloc>()
-                                              .add(const CartUndoRemove());
-                                        },
-                                      );
-                                    },
-                                    icon: const Icon(Icons.delete_outline,
-                                        size: 18),
-                                    label: Text(
-                                      'Quitar ${_selectedItems.length} seleccionado${_selectedItems.length > 1 ? 's' : ''}',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w700),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: tokens.bad,
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-
-                            // Items List (swipe left to remove, swipe right to favorite)
-                            ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: state.lines.length,
-                              separatorBuilder: (_, __) =>
-                                  Divider(color: tokens.line, height: 1),
-                              itemBuilder: (context, index) {
-                                final item = state.lines[index];
-                                return _buildCartRow(context, item, tokens);
-                              },
-                            ),
-                            const SizedBox(height: 24),
-
-                            // Scratch Coupon Card
-                            ScratchCouponCard(
-                              isScratched: state.scratched,
-                              onScratched: () {
-                                context
-                                    .read<CartBloc>()
-                                    .add(const CartCouponScratched());
-                              },
-                              onApply: () {
-                                context
-                                    .read<CartBloc>()
-                                    .add(const CartCouponApplied('CANASTA10'));
-                                AppToast.show(
-                                  context,
-                                  'Cupón CANASTA10 aplicado: 10 % de descuento.',
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 18),
-
-                            // Promo Code input banner
-                            GestureDetector(
-                              onTap: () => _showDiscountSheet(context),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 14),
-                                decoration: BoxDecoration(
-                                  color: tokens.chip,
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Row(
-                                  children: [
-                                    AppSvgIcon('tag',
-                                        size: 18, color: tokens.blue),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        state.coupon != null
-                                            ? 'Cupón: ${state.coupon!.code} (-${state.coupon!.pct}%)'
-                                            : 'Agregar código de descuento',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: state.coupon != null
-                                              ? tokens.blue
-                                              : tokens.ink,
-                                        ),
-                                      ),
-                                    ),
-                                    if (state.coupon != null)
-                                      GestureDetector(
-                                        onTap: () {
-                                          context
-                                              .read<CartBloc>()
-                                              .add(const CartCouponRemoved());
-                                          AppToast.show(
-                                            context,
-                                            'Quitaste el cupón.',
-                                          );
-                                        },
-                                        child: Text(
-                                          'Quitar',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w700,
-                                            color: tokens.bad,
-                                          ),
-                                        ),
-                                      )
-                                    else
-                                      Icon(Icons.arrow_forward_ios_rounded,
-                                          size: 14, color: tokens.ink3),
-                                  ],
-                                ),
+                            Text(
+                              'Mi carrito',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: tokens.ink,
+                                letterSpacing: -0.18,
                               ),
                             ),
-                            const SizedBox(height: 24),
-
-                            // Order breakdown: Subtotal, Descuento, Delivery, Total
-                            _buildBreakdownRow('Subtotal', state.subtotal, tokens),
-                            const SizedBox(height: 8),
-                            if (state.discount > 0) ...[
-                              _buildBreakdownRow(
-                                'Descuento',
-                                -state.discount,
-                                tokens,
-                                isDiscount: true,
+                            if (!isEmpty)
+                              Text(
+                                unitsLabel,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  height: 1.35,
+                                  color: tokens.ink2,
+                                ),
                               ),
-                              const SizedBox(height: 8),
-                            ],
-                            _buildBreakdownRow(
-                              'Delivery',
-                              state.fee,
-                              tokens,
-                              isFree: state.fee == 0,
-                            ),
-                            const SizedBox(height: 12),
-                            const Divider(),
-                            const SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Total',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                    color: tokens.ink,
-                                  ),
-                                ),
-                                Text(
-                                  formatPen(state.total),
-                                  style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w900,
-                                    color: tokens.ink,
-                                  ),
-                                ),
-                              ],
-                            ),
                           ],
                         ),
                       ),
-
-                      // Fixed Bottom Checkout Bar
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        child: Container(
-                          padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border(top: BorderSide(color: tokens.line)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.06),
-                                blurRadius: 10,
-                                offset: const Offset(0, -3),
+                      if (!isEmpty)
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            setState(() {
+                              _isEditing = !_isEditing;
+                              _selectedItems.clear();
+                            });
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: Text(
+                              _isEditing ? 'Listo' : 'Editar',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: tokens.blue,
                               ),
-                            ],
+                            ),
                           ),
+                        ),
+                    ],
+                  ),
+                ),
+
+                // Main body
+                Expanded(
+                  child: isEmpty
+                      ? _buildEmptyState(context, tokens)
+                      : SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(22, 8, 22, 32),
                           child: Column(
-                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Delivery address label & change
+                              // Free Delivery Progress Banner (.frb)
+                              FreeDeliveryProgress(
+                                missingAmount: state.missingForFree,
+                                progress: state.freeDeliveryProgress,
+                                hasFreeDelivery: state.hasFreeDelivery,
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Items list (.clist)
+                              ListView.separated(
+                                padding: EdgeInsets.zero,
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: state.lines.length,
+                                separatorBuilder: (_, __) =>
+                                    Divider(color: tokens.line, height: 1),
+                                itemBuilder: (context, index) {
+                                  final item = state.lines[index];
+                                  return _buildCartRow(context, item, tokens);
+                                },
+                              ),
+                              Divider(color: tokens.line, height: 1),
+
+                              // Edit Mode Bulk Delete Button
+                              if (_isEditing) ...[
+                                const SizedBox(height: 14),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 48,
+                                  child: OutlinedButton.icon(
+                                    onPressed: _selectedItems.isEmpty
+                                        ? null
+                                        : () {
+                                            final toRemove =
+                                                _selectedItems.toList();
+                                            context.read<CartBloc>().add(
+                                                  CartMultipleRemoved(toRemove),
+                                                );
+                                            final count = toRemove.length;
+                                            setState(() {
+                                              _selectedItems.clear();
+                                              _isEditing = false;
+                                            });
+                                            AppToast.show(
+                                              context,
+                                              'Quitaste $count producto${count > 1 ? 's' : ''}.',
+                                              actionLabel: 'Deshacer',
+                                              onAction: () {
+                                                context.read<CartBloc>().add(
+                                                    const CartUndoRemove());
+                                              },
+                                            );
+                                          },
+                                    icon: AppSvgIcon('trash',
+                                        size: 18,
+                                        color: _selectedItems.isEmpty
+                                            ? tokens.ink3
+                                            : tokens.bad),
+                                    label: Text(
+                                      _selectedItems.isEmpty
+                                          ? 'Quitar seleccionados'
+                                          : 'Quitar ${_selectedItems.length} seleccionado${_selectedItems.length > 1 ? 's' : ''}',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14.5,
+                                        color: _selectedItems.isEmpty
+                                            ? tokens.ink3
+                                            : tokens.bad,
+                                      ),
+                                    ),
+                                    style: OutlinedButton.styleFrom(
+                                      side: BorderSide(
+                                        color: _selectedItems.isEmpty
+                                            ? tokens.border
+                                            : tokens.bad,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 18),
+
+                              // Scratch Coupon Card (.cp)
+                              ScratchCouponCard(
+                                isScratched: state.scratched,
+                                isApplied: state.coupon?.code == 'CANASTA10',
+                                onScratched: () {
+                                  context
+                                      .read<CartBloc>()
+                                      .add(const CartCouponScratched());
+                                },
+                                onApply: () {
+                                  context.read<CartBloc>().add(
+                                      const CartCouponApplied('CANASTA10'));
+                                  AppToast.show(
+                                    context,
+                                    'Cupón CANASTA10 aplicado: 10 % de descuento.',
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 14),
+
+                              // Promo Code button (.row.promo)
+                              GestureDetector(
+                                onTap: () => _showDiscountSheet(context),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 14),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: tokens.line),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      AppSvgIcon('tag',
+                                          size: 22, color: tokens.blue),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          state.coupon != null
+                                              ? '${state.coupon!.code} aplicado · ${state.coupon!.pct} % dscto'
+                                              : 'Agregar código de descuento',
+                                          style: TextStyle(
+                                            fontSize: 14.5,
+                                            fontWeight: FontWeight.w500,
+                                            color: tokens.blue,
+                                          ),
+                                        ),
+                                      ),
+                                      if (state.coupon != null)
+                                        GestureDetector(
+                                          onTap: () {
+                                            context
+                                                .read<CartBloc>()
+                                                .add(const CartCouponRemoved());
+                                            AppToast.show(
+                                              context,
+                                              'Quitaste el cupón.',
+                                            );
+                                          },
+                                          child: Text(
+                                            'Quitar',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: tokens.bad,
+                                            ),
+                                          ),
+                                        )
+                                      else
+                                        AppSvgIcon('chev',
+                                            size: 18, color: tokens.blue),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+
+                              // Summary breakdown (.sum)
+                              _buildBreakdownRow(
+                                  'Subtotal', state.subtotal, tokens),
+                              const SizedBox(height: 10),
+                              if (state.discount > 0) ...[
+                                _buildBreakdownRow(
+                                  'Descuento (${state.coupon?.code ?? ''})',
+                                  -state.discount,
+                                  tokens,
+                                  isDiscount: true,
+                                ),
+                                const SizedBox(height: 10),
+                              ],
+                              _buildBreakdownRow(
+                                'Delivery',
+                                state.fee,
+                                tokens,
+                                isFree: state.fee == 0,
+                              ),
+                              const SizedBox(height: 12),
+                              Divider(color: tokens.line, height: 1),
+                              const SizedBox(height: 12),
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Row(
-                                    children: [
-                                      AppSvgIcon('pin',
-                                          size: 14, color: tokens.ink2),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        'Entregar en ${address.tag} · ${address.shortLine}',
-                                        style: TextStyle(
-                                          fontSize: 12.5,
-                                          color: tokens.ink2,
-                                        ),
-                                      ),
-                                    ],
+                                  Text(
+                                    'Total',
+                                    style: TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w700,
+                                      color: tokens.ink,
+                                    ),
                                   ),
-                                  GestureDetector(
-                                    onTap: () => context.push('/location'),
-                                    child: Text(
-                                      'Cambiar',
-                                      style: TextStyle(
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.w700,
-                                        color: tokens.blue,
-                                      ),
+                                  Text(
+                                    formatPen(state.total),
+                                    style: TextStyle(
+                                      fontSize: 19,
+                                      fontWeight: FontWeight.w800,
+                                      color: tokens.ink,
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 22),
 
-                              // Checkout button: "Ir a pagar →"
+                              // Delivery address card (.card.addrc)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 14),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: tokens.line),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 28,
+                                      alignment: Alignment.centerLeft,
+                                      child: AppSvgIcon('pin',
+                                          size: 22, color: tokens.blue),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Entregar en',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: tokens.ink2,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Row(
+                                            children: [
+                                              Flexible(
+                                                child: Text(
+                                                  '${address.shortLine}, ${address.district}',
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: tokens.ink,
+                                                  ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              AppSvgIcon('down',
+                                                  size: 14, color: tokens.ink),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 2),
+                                          GestureDetector(
+                                            onTap: () =>
+                                                AddressPickerSheet.show(
+                                                    context),
+                                            child: Text(
+                                              'Cambiar dirección',
+                                              style: TextStyle(
+                                                fontSize: 12.5,
+                                                fontWeight: FontWeight.w600,
+                                                color: tokens.blue,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    AppSvgIcon('chev',
+                                        size: 18, color: tokens.ink3),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+
+                              // Checkout button (.btn.big)
                               SizedBox(
                                 width: double.infinity,
                                 height: 54,
@@ -459,30 +556,18 @@ class _CartScreenState extends State<CartScreen> {
                                     elevation: 0,
                                   ),
                                   child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: const [
+                                      Text(
                                         'Ir a pagar',
                                         style: TextStyle(
                                           fontSize: 16.5,
                                           fontWeight: FontWeight.w700,
                                         ),
                                       ),
-                                      Row(
-                                        children: [
-                                          Text(
-                                            formatPen(state.total),
-                                            style: const TextStyle(
-                                              fontSize: 17,
-                                              fontWeight: FontWeight.w800,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 6),
-                                          const Icon(Icons.arrow_forward_rounded,
-                                              size: 18),
-                                        ],
-                                      ),
+                                      SizedBox(width: 8),
+                                      AppSvgIcon('arrow',
+                                          size: 20, color: Colors.white),
                                     ],
                                   ),
                                 ),
@@ -490,10 +575,10 @@ class _CartScreenState extends State<CartScreen> {
                             ],
                           ),
                         ),
-                      ),
-                    ],
-                  ),
                 ),
+              ],
+            ),
+          ),
         );
       },
     );
@@ -506,24 +591,33 @@ class _CartScreenState extends State<CartScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              CaAssets.bag,
-              width: 140,
-              height: 140,
-              fit: BoxFit.contain,
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: tokens.blueSoft,
+              ),
+              alignment: Alignment.center,
+              child: Image.asset(
+                CaAssets.bag,
+                width: 72,
+                height: 72,
+                fit: BoxFit.contain,
+              ),
             ),
             const SizedBox(height: 20),
             Text(
               'Tu carrito está vacío',
               style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
                 color: tokens.ink,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Explora nuestras categorías y agrega productos frescos de la mejor calidad.',
+              'Agrega frutas, verduras o lo que necesites para la semana.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14.5,
@@ -531,7 +625,7 @@ class _CartScreenState extends State<CartScreen> {
                 height: 1.4,
               ),
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               height: 52,
@@ -563,31 +657,30 @@ class _CartScreenState extends State<CartScreen> {
 
     return Dismissible(
       key: Key(p.id),
-      direction: _isEditing ? DismissDirection.none : DismissDirection.horizontal,
+      direction:
+          _isEditing ? DismissDirection.none : DismissDirection.horizontal,
       background: Container(
         color: tokens.green,
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.only(left: 24),
-        child: const Icon(Icons.favorite, color: Colors.white, size: 26),
+        child: const AppSvgIcon('heart', size: 24, color: Colors.white),
       ),
       secondaryBackground: Container(
         color: tokens.bad,
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
-        child: const Icon(Icons.delete_outline, color: Colors.white, size: 26),
+        child: const AppSvgIcon('trash', size: 24, color: Colors.white),
       ),
       confirmDismiss: (direction) async {
         if (direction == DismissDirection.startToEnd) {
-          // Swipe right: toggle favorite
           CaHaptics.mediumImpact();
           context.read<FavoritesCubit>().toggle(p.id);
           AppToast.show(
             context,
             '${p.name} guardado en favoritos.',
           );
-          return false; // return row back to position
+          return false;
         } else {
-          // Swipe left: remove item with undo
           CaHaptics.mediumImpact();
           context.read<CartBloc>().add(CartItemRemoved(p.id));
           AppToast.show(
@@ -602,15 +695,14 @@ class _CartScreenState extends State<CartScreen> {
         }
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Selection checkbox (when editing)
+            // Checkbox when editing (.ck)
             if (_isEditing) ...[
-              Checkbox(
-                value: isSelected,
-                activeColor: tokens.blue,
-                onChanged: (_) {
+              GestureDetector(
+                onTap: () {
                   setState(() {
                     if (isSelected) {
                       _selectedItems.remove(p.id);
@@ -619,66 +711,101 @@ class _CartScreenState extends State<CartScreen> {
                     }
                   });
                 },
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  margin: const EdgeInsets.only(top: 26, right: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected ? tokens.blue : Colors.white,
+                    borderRadius: BorderRadius.circular(7),
+                    border: isSelected
+                        ? null
+                        : Border.all(color: tokens.border, width: 1.5),
+                  ),
+                  alignment: Alignment.center,
+                  child: isSelected
+                      ? const Icon(Icons.check, size: 16, color: Colors.white)
+                      : null,
+                ),
               ),
-              const SizedBox(width: 4),
             ],
 
-            // 76px Product Image
-            Container(
-              width: 76,
-              height: 76,
-              decoration: BoxDecoration(
-                color: tokens.chip,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.all(8),
-              child: Image.asset(
-                CaAssets.product(p.id),
-                fit: BoxFit.contain,
+            // 76px Product Image (.th)
+            GestureDetector(
+              onTap: () => context.push('/product/${p.id}'),
+              child: Container(
+                width: 76,
+                height: 76,
+                padding: const EdgeInsets.all(4),
+                child: Image.asset(
+                  CaAssets.product(p.id),
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
             const SizedBox(width: 14),
 
-            // Name and unit
+            // Name & unit (.tx)
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    p.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w700,
-                      color: tokens.ink,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      p.name,
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        color: tokens.ink,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    p.isKg ? 'Por peso' : p.unit,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      color: tokens.ink2,
+                    const SizedBox(height: 4),
+                    Text(
+                      p.isKg ? formatWeight(item.quantity) : p.unit,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: tokens.ink2,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 
-            // Price top-right and Stepper bottom-right
+            // Price (.pp) and Stepper (.act)
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  formatPen(item.total),
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: tokens.ink,
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Row(
+                    children: [
+                      if (p.hasDiscount) ...[
+                        Text(
+                          formatPen(p.oldPrice * item.quantity),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: tokens.ink3,
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                      ],
+                      Text(
+                        formatPen(item.total),
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: tokens.ink,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 QtyStepper(
                   product: p,
                   quantity: item.quantity,
@@ -705,7 +832,7 @@ class _CartScreenState extends State<CartScreen> {
     bool isFree = false,
   }) {
     String valueStr = formatPen(amount.abs());
-    if (isDiscount) valueStr = '-$valueStr';
+    if (isDiscount) valueStr = '− $valueStr';
     if (isFree) valueStr = 'Gratis';
 
     return Row(
@@ -714,15 +841,15 @@ class _CartScreenState extends State<CartScreen> {
         Text(
           label,
           style: TextStyle(
-            fontSize: 14.5,
+            fontSize: 14,
             color: tokens.ink2,
           ),
         ),
         Text(
           valueStr,
           style: TextStyle(
-            fontSize: 14.5,
-            fontWeight: FontWeight.w700,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
             color: (isDiscount || isFree) ? tokens.green : tokens.ink,
           ),
         ),
